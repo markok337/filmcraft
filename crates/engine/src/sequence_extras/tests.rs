@@ -125,6 +125,28 @@ fn apply_video_transition_goes_to_the_selection_not_the_playhead() {
 }
 
 #[test]
+fn a_subframe_gap_can_hold_a_two_clip_transition() {
+    let mut s = demo();
+    let seq = s.state.active_sequence.unwrap();
+    let frame = s.sequence_rate().frame_duration();
+    let (left, right) = {
+        let q = Arc::make_mut(&mut s.project).sequence_mut(seq).unwrap();
+        let track = &mut q.video_tracks[0];
+        track.transitions.clear();
+        let left = track.items[0].id;
+        let right = track.items[1].id;
+        assert_eq!(track.items[0].end(), track.items[1].start);
+        track.items[0].duration -= Tick(frame.0 / 3);
+        (left, right)
+    };
+    s.execute("sequence.applyVideoTransition", json!({
+        "clip": left.0, "edge": "out", "frames": 8, "effect": "cross_dissolve"
+    })).unwrap();
+    let transitions = &s.active_sequence().unwrap().video_tracks[0].transitions;
+    assert!(transitions.iter().any(|t| t.from == Some(left) && t.to == Some(right)));
+}
+
+#[test]
 fn normalize_mix_track_hits_the_target_peak() {
     let mut s = demo();
     let before = crate::sequence_extras::mix_peak_db(&s).unwrap();

@@ -183,7 +183,12 @@ pub fn track_range_empty(track: &Track, range: TimeRange) -> bool {
 pub fn remove_orphan_transitions(track: &mut Track) {
     let ids: HashMap<ClipId, (Tick, Tick)> = track.items.iter().map(|i| (i.id, (i.start, i.end()))).collect();
     track.transitions.retain(|tr| match (tr.from, tr.to) {
-        (Some(f), Some(t)) => matches!((ids.get(&f), ids.get(&t)), (Some(&(_, end)), Some(&(start, _))) if end == start),
+        (Some(f), Some(t)) => matches!(
+            (ids.get(&f), ids.get(&t)),
+            (Some(&(_, end)), Some(&(start, _)))
+                if end <= start
+                    && start - end <= Tick(filmcraft_time::TICKS_PER_SECOND / 12)
+        ),
         (Some(c), None) | (None, Some(c)) => ids.contains_key(&c),
         (None, None) => false,
     });

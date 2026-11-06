@@ -5052,8 +5052,12 @@ pub fn preview_transition(s: &Session, p: &Value, kind: TrackKind) -> Result<(Tr
             {
                 continue;
             }
-            let prev = i.checked_sub(1).map(|j| &items[j]).filter(|pv| pv.end() == it.start);
-            let next = items.get(i + 1).filter(|nx| nx.start == it.end());
+            let prev = i.checked_sub(1).map(|j| &items[j]).filter(|pv| {
+                pv.end() <= it.start && it.start - pv.end() <= rate.frame_duration()
+            });
+            let next = items.get(i + 1).filter(|nx| {
+                nx.start >= it.end() && nx.start - it.end() <= rate.frame_duration()
+            });
             let use_in = match edge.as_deref() {
                 Some("in") => true,
                 Some("out") => false,
@@ -5062,7 +5066,11 @@ pub fn preview_transition(s: &Session, p: &Value, kind: TrackKind) -> Result<(Tr
             if clip.is_none() && !(it.start == t || it.end() == t || (it.start - t).abs() < rate.tick_of(3) || (it.end() - t).abs() < rate.tick_of(3)) {
                 continue;
             }
-            found = Some(if use_in { (tr.id, prev.map(|x| x.id), Some(it.id), it.start) } else { (tr.id, Some(it.id), next.map(|x| x.id), it.end()) });
+            found = Some(if use_in {
+                (tr.id, prev.map(|x| x.id), Some(it.id), it.start)
+            } else {
+                (tr.id, Some(it.id), next.map(|x| x.id), next.map_or(it.end(), |x| x.start))
+            });
             break;
         }
         if found.is_some() {

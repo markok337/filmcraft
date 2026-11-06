@@ -438,7 +438,12 @@ pub fn scan_system() -> usize {
     if system_scanned() {
         return 0;
     }
-    let n = if cfg!(target_arch = "wasm32") { 0 } else { add_source(&DirectorySource::system()) };
+    let mut n = if cfg!(target_arch = "wasm32") { 0 } else { add_source(&DirectorySource::system()) };
+    if !cfg!(target_arch = "wasm32") {
+        if let Some(dir) = std::env::var_os("FILMCRAFT_FONTS_DIR") {
+            n += add_source(&DirectorySource { dirs: vec![PathBuf::from(dir)] });
+        }
+    }
     db().write().unwrap_or_else(PoisonError::into_inner).scanned = true;
     n
 }

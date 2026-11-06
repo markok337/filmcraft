@@ -386,6 +386,20 @@ fn set_style_font_style() {
     assert_eq!(s.active_sequence().unwrap().caption_tracks[0].style.font_style, "SemiBold");
 }
 
+#[test]
+fn caption_fade_style_is_listed_and_reset() {
+    let mut s = demo();
+    s.execute("captions.add", json!({"text": "검증"})).unwrap();
+    s.execute("captions.setStyle", json!({"fadeInSeconds": 0.5, "fadeOutSeconds": 0.75})).unwrap();
+    let style = &s.execute("captions.list", json!({})).unwrap()["tracks"][0]["style"];
+    assert_eq!(style["fadeInSeconds"], 0.5);
+    assert_eq!(style["fadeOutSeconds"], 0.75);
+    s.execute("captions.setStyle", json!({"reset": true})).unwrap();
+    let style = &s.execute("captions.list", json!({})).unwrap()["tracks"][0]["style"];
+    assert_eq!(style["fadeInSeconds"], 0.0);
+    assert_eq!(style["fadeOutSeconds"], 0.0);
+}
+
 /// The caption track language reaches TTML, and import can set it (#4025).
 #[test]
 fn caption_track_language_survives_import_and_ttml_export() {

@@ -255,6 +255,8 @@ fn track_json(s: &Session, t: &CaptionTrack, index: usize) -> Value {
             "align": format!("{:?}", t.style.align).to_lowercase(), "anchor": format!("{:?}", t.style.anchor).to_lowercase(),
             "margin": t.style.margin, "lineSpacing": t.style.line_spacing, "outline": t.style.outline, "outlineColor": hex(t.style.outline_color),
             "fontStyle": t.style.font_style,
+            "fadeInSeconds": t.style.fade_in_seconds,
+            "fadeOutSeconds": t.style.fade_out_seconds,
         },
         "captions": t.captions.iter().map(|c| caption_json(s, c)).collect::<Vec<_>>(),
     })
@@ -361,7 +363,7 @@ pub fn commands() -> Vec<CommandSpec> {
             "Caption Track Style",
             &[],
             None,
-            r##"{"track":id|"C1","font":str?,"fontStyle":str="SemiBold" (Regular, Medium, Bold…)?,"size":f32?,"color":"#rrggbb[aa]"?,"background":bool?,"backgroundColor":"#rrggbbaa"?,"align":"left|center|right"?,"anchor":"top|middle|bottom"?,"margin":0..0.45 (fraction of frame height)?,"lineSpacing":f32?,"outline":f32?,"outlineColor":str?,"reset":bool?}"##,
+            r##"{"track":id|"C1","font":str?,"fontStyle":str?,"size":f32?,"color":"#rrggbb[aa]"?,"background":bool?,"backgroundColor":"#rrggbbaa"?,"align":"left|center|right"?,"anchor":"top|middle|bottom"?,"margin":0..0.45?,"lineSpacing":f32?,"outline":f32?,"outlineColor":str?,"fadeInSeconds":f32?,"fadeOutSeconds":f32?,"reset":bool?}"##,
             has_caption_track,
             |s, p| {
                 let tid = track_param(s, p).ok_or_else(|| {
@@ -410,6 +412,12 @@ pub fn commands() -> Vec<CommandSpec> {
                     }
                     if let Some(v) = f64_p(&p, "lineSpacing") {
                         y.line_spacing = (v as f32).clamp(0.8, 4.0);
+                    }
+                    if let Some(v) = f64_p(&p, "fadeInSeconds") {
+                        y.fade_in_seconds = (v as f32).clamp(0.0, 10.0);
+                    }
+                    if let Some(v) = f64_p(&p, "fadeOutSeconds") {
+                        y.fade_out_seconds = (v as f32).clamp(0.0, 10.0);
                     }
                     match str_p(&p, "align") {
                         Some("left") => y.align = CaptionAlign::Left,

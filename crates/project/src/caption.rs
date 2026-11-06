@@ -96,6 +96,9 @@ pub struct CaptionStyle {
     /// Font style within the family (`Regular`, `Medium`, `SemiBold`, `Bold Italic`…), resolved
     /// like graphic text: the nearest weight when the family has no face of that name.
     pub font_style: String,
+    /// 자막 시작과 끝에서 투명도가 변하는 시간(초).
+    pub fade_in_seconds: f32,
+    pub fade_out_seconds: f32,
 }
 
 impl Default for CaptionStyle {
@@ -113,6 +116,8 @@ impl Default for CaptionStyle {
             outline: 0.0,
             outline_color: [0, 0, 0, 255],
             font_style: "SemiBold".into(),
+            fade_in_seconds: 0.0,
+            fade_out_seconds: 0.0,
         }
     }
 }

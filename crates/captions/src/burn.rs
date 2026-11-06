@@ -276,7 +276,18 @@ pub fn track_overlay(track: &CaptionTrack, t: Tick, w: usize, h: usize) -> Optio
         return None;
     }
     let c = track.caption_at(t)?;
-    render_caption(c, &track.style, w, h)
+    let mut overlay = render_caption(c, &track.style, w, h)?;
+    let elapsed = (t - c.start).seconds() as f32;
+    let remaining = (c.end() - t).seconds() as f32;
+    let fade_in = if track.style.fade_in_seconds > 0.0 {
+        (elapsed / track.style.fade_in_seconds).clamp(0.0, 1.0)
+    } else { 1.0 };
+    let fade_out = if track.style.fade_out_seconds > 0.0 {
+        (remaining / track.style.fade_out_seconds).clamp(0.0, 1.0)
+    } else { 1.0 };
+    let opacity = fade_in.min(fade_out);
+    for channel in &mut overlay.px { *channel *= opacity; }
+    Some(overlay)
 }
 
 /// Overlays of every visible caption track of a sequence at `t`, bottom track first.
@@ -291,6 +302,24 @@ mod tests {
 
     fn cap(text: &str) -> Caption {
         Caption { id: ClipId(1), start: Tick(0), duration: Tick(100), text: text.into(), speaker: None, cue_id: None, settings: String::new() }
+    }
+
+    #[test]
+    fn caption_fades_at_both_ends() {
+        let mut track = CaptionTrack::new(TrackId(1), "검증".into(), CaptionFormat::Subtitle);
+        let mut caption = cap("검증");
+        caption.duration = Tick::from_seconds_f64(2.0);
+        track.captions.push(caption);
+        track.style.fade_in_seconds = 0.5;
+        track.style.fade_out_seconds = 0.5;
+        let alpha = |second| {
+            track_overlay(&track, Tick::from_seconds_f64(second), 640, 360)
+                .unwrap().px.chunks_exact(4).map(|pixel| pixel[3]).sum::<f32>()
+        };
+        assert_eq!(alpha(0.0), 0.0);
+        assert!(alpha(0.25) > 0.0);
+        assert!(alpha(0.25) < alpha(1.0));
+        assert!(alpha(1.75) < alpha(1.0));
     }
 
     #[test]
